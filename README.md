@@ -1,5 +1,5 @@
 # vanillaHelper
 
-A light weight collection of methods and pollyfils to make vinilla javascript even more awesome!
+A light weight (2.8kb) collection of methods and pollyfils to make vinilla javascript even more awesome!
 
-Docs comming soon...
+#### See docs for details
