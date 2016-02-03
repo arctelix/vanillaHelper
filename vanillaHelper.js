@@ -2,35 +2,79 @@
  * Created by Simplex Studio, Ltd on 10/11/2015.
  */
 
+/**
+ * @description Provides some basic helper methods and pollyfills for vanilla js.
+ *
+ * @author Simplex Studio, LTD
+ * @copyright Copyright (c) 2016 Simplex Studio, LTD
+ * @license The MIT License (MIT)
+ * Copyright (c) 2016 Simplex Studio, LTD
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 //TODO: wrap this up so these are not root vars!
 // currently used by debugger only
-
 /**
  * Short cut to create and append a dom element with id, classes, and inner html.
  * This is really sweet because you can create a new button in one line!
- * example: createEle("div", someDomEle , "#btnid .btn .btn-lg button lable &#8615;")
- * @param tag {string} - The elements tag type.
- * @param appendTo {Element} - The DOM element to append the new element to.
- * @param attr {string} - Space separated list of #id .class text to add to innerHtml
- * @returns {Element}
+ * @example
+ * createEle("div#id.class1.class2", someDomEle , "Some text for the innerHTML")
+ * createEle("div.class1", someDomEle , {innerHTML:'Some text for the innerHTML',
+ *                                       style:'display:None;'})
+ * @param zen {string}
+ * The elements tag type. Allows zen #id and .class declarations.
+ * @param [appendTo] {HTMLElement}
+ * The DOM element to append the new element to.
+ * @param [attributes] {string|object} [properties]
+ * An object of {attribute:value} pairs to set on the element created. Or
+ * Or s string to set as the innerHTML property of the created element.
+ * @returns {HTMLElement}
  */
-function createEle (tag, appendTo, attr){
-    var e = document.createElement(tag)
-        appendTo.appendChild(e)
+function createEle(zen, appendTo, attributes) {
+    attributes = attributes == undefined ? {} : attributes
+    var e
+    var z = parseZen(zen)
+    e = document.createElement(z.tag)
+    if (z.id) e.id = z.id
+    if (z.class) e.className = z.class
 
-    var attrs = attr.split(" ")
+    if (typeof attributes == 'string')
+        e.innerHTML = attributes
+    else
+        for (var k in attributes)
+            e.setAttribute(k, attributes[k])
 
-    for (var a in attrs){
-        a = attrs[a]
-        if (a[0]=="#") e.id = a.slice(1)
-        else if (a[0]=="." && !e.className) e.className += a.slice(1)
-        else if (a[0]=="." && e.className) e.className += " "+a.slice(1)
-        else if  (!e.innerHTML) e.innerHTML = a
-        else e.innerHTML += " "+a
-    }
+    if (appendTo) appendTo.appendChild(e)
     return e
-
 }
+
+/**
+ * Parses a string for zen syntax. Limited support to tag, id, and class.
+ * @param zen {string} tag#id.class
+ * @returns {{tag: (string), id: (string), class: (string)}}
+ */
+function parseZen(zen){
+    var match = zen.match(/(\w+)(?:#([^\.#]+)){0,1}((?:\.[^\.#]+)*)/i)
+    return {tag:match[1]|| '', id:match[2] || '', class:match[3].split('.').join(' ').trim() || ''}
+}
+
 /**
  * Gets the parent of an HTMLElement.
  * @param ele {HTMLElement}
@@ -74,7 +118,7 @@ function testEleMatch(ele, selector){
  * @returns {*}
  */
 function hasClass(ele,cls) {
-    if (iterate(ele, cls, hasClass)) return
+    if (iterateCollection(arguments, hasClass)) return
     if (!(ele && ele.className)) return false
     return ele.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)'))
 }
@@ -84,7 +128,7 @@ function hasClass(ele,cls) {
  * @param cls {string}
  */
 function addClass(ele,cls) {
-    if (iterate(ele, cls, addClass)) return
+    if (iterateCollection(arguments, addClass)) return
     if (!hasClass(ele,cls)) {
         if (ele.className) ele.className += " "+cls;
         else ele.className += cls;
@@ -96,7 +140,7 @@ function addClass(ele,cls) {
  * @param cls {string}
  */
 function removeClass(ele,cls) {
-    if (iterate(ele, cls, removeClass)) return
+    if (iterateCollection(arguments, removeClass)) return
     if (hasClass(ele,cls)) {
         //log('info', 'removeClass:', ele )
         var reg = new RegExp('(\\s|^)'+cls+'(\\s|$)');
@@ -109,10 +153,10 @@ function removeClass(ele,cls) {
  * Toggles the class of an HTMLElement
  * @param ele {HTMLElement}
  * @param cls
- * @returns {boolean}
+ * @returns {boolean|undefined}
  */
 function toggleClass(ele,cls) {
-    if (iterate(ele, cls, toggleClass)) return
+    if(iterateCollection(arguments, toggleClass)) return
     if (!hasClass(ele,cls)) {
         addClass(ele,cls)
         return true
@@ -122,35 +166,120 @@ function toggleClass(ele,cls) {
     }
 }
 /**
- * Test if an object is an HTMLCollection or NodeList
- * @param ele {HTMLElement}
+ * Test if an object is an HTMLCollection, NodeList, or Array
+ * @param obj {object} The object to test.
  * @returns {boolean}
  */
-function isHTMLCollection (ele){
-    return ele instanceof HTMLCollection || ele instanceof NodeList
+function isCollection (obj){
+    return obj instanceof HTMLCollection || obj instanceof NodeList || obj instanceof Array
 }
 
 /**
- * Helper for functions to accept HTMLCollections by iterating over HTMLCollection untill specified
- * element is found. Then executes a callback with the specified element and property.
- *
- * @param ele
- * @param prop
- * @param func
+ * Testes a any object for typeof or isInstance of depending on the verifyType.
+ * @param obj {object} the object to test
+ * @param verifyType {constructor | string | null} [HTMLElement]
+ * A string will test `typeof` and a constructor function will test instanceof.
+ * `null` will always return true.
  * @returns {boolean}
  */
-function iterate(ele, prop, func) {
-    if (isHTMLCollection (ele)) {
-        for (var i in ele) {
-            if (ele.hasOwnProperty(i))
-                if (!ele[i] || !ele[i].tagName){
-                    return true
-                }else{
-                    func(ele[i], prop)
-                }
+function isItemType(verifyType, obj){
+    if (verifyType !== null)
+        if (typeof verifyType === 'string' ? !(typeof obj == verifyType):!(obj instanceof verifyType))
+            return false
+    return true
+}
+
+/**
+ * An iterator function with the ability to extract the iterable from an arguments object where
+ * and pass the balance of arguments to the callback along with the current iteration value and key.
+ * There is also inline input and output verification for easily preserving the arguments object.
+ * {@link isCollection} for what is considered a collection.
+ *
+ * @param input {arguments|object}
+ * The object to iterate or the calling function's arguments object.
+ * The latter requires the first argument be the object to iterate.  Remaining arguments will be applied
+ * to the callback.
+ * @param callback {function(element, [arguments,] index)}
+ * A callback to apply for each element found in the collection.  The first argument will be the current
+ * element, then anny other arguments passed, then the index of the current element.
+ * @param [verify] {object}
+ * @param verify.input {function(input)} A function returning true if the iterable is valid. Return any
+ * falsy value to abort iteration.
+ * @param verify.output {function(value)} A function returning true if the iterator's value is valid. Return
+ * any falsy value to skip the callback for this iteration.
+ * @returns {bool} Returns false if no iteration is required and true when complete.
+ *
+ * @example <caption>Perform action on element or all elements in collection.</caption>
+ * function addId (elements, id) {
+ *      // Provide this function as the callback
+ *      if (iterate(arguments, addId)){
+ *          //This will be executed once, after all items are iterated.
+ *          // You must return here!
+ *          return
+ *      }
+ *      // Element index will be provided as the last argument when callback is .
+ *      // Alternatively modify the callable signature (element, id, index)
+ *      var index = arguments[2]
+ *      element.id = index ? id + index:id
+ * }
+ *
+ * @example <caption>Perform action on all elements in collection.</caption>
+ * // This example will do nothing if an element is provided as elements!
+ * function addId (elements, id){
+ *      iterate(elements, function(ele, index){
+ *          ele.id = id+index
+ *      })
+ *  }
+ *
+ *  See {@link iterateCollection} for an example of inline verification.
+ */
+function iterate(input, callback, verify) {
+    var isArguments = Object.prototype.toString.call(input) == '[object Arguments]'
+    var iterable = isArguments ? input[0] : input
+    verify  = verify || {}
+    //if (!isCollection (col)) return false
+    if (verify.input && !verify.input (iterable)) return false
+    var args = isArguments ? Array.prototype.slice.call(input, 0) : ['value']
+    var argsI = args.length
+    for (var i in iterable) {
+        if (iterable.hasOwnProperty(i)) {
+            var value = iterable[i]
+            if(verify.output && !verify.output(value)) continue
+            args[0] = value
+            args[argsI] = i
+            if(callback) callback.apply(this, args)
         }
-        return true
     }
+    return true
+}
+
+//To make iterate generic this wrapper function is necessary
+function iterateCollection(input, callback){
+    return iterate(input , callback, {input:isCollection, output:isItemType.bind(this, HTMLElement)})
+}
+
+//TODO: universal map similar to jQuery can be implemented like this, but is it really worth it?
+/**
+ * Universal map function.  Takes any iterable and fires a callback for each iteration and
+ * returns a new iterator containing all keys with non `null` or `undefined` values.  The call
+ * back receives the current value plus andy arguments passed as input and an finally the
+ * current index.
+ * @param input {object | arguments} the
+ * @param [callback]
+ * @returns {}
+ */
+function map(input, callback){
+    var isArrayLike = input[0] ? true : false
+    var items = isArrayLike ? [] : {}
+    iterate(input, function(value, key){
+        var ret = callback.apply(this, arguments)
+        if (ret === null || ret === undefined) return
+        if (isArrayLike)
+            items.push(ret)
+        else
+            items[key] = ret
+    })
+    return items
 }
 
 var lastTouch = undefined
@@ -177,13 +306,16 @@ function noDTZoom (ele) {
 };
 
 /**
- * Trigger the specified event on the specified target.
+ * A shortcut to create and dispatch (or fire depending on browser) the specified
+ * event on the specified target.
  * @param element
- * @param eventName
+ * @param eventName The name of the event to trigger.  A name containing
+ * "mouse" or "touch" will create the appropriate Event type.
+ * @param [evt=HTMLEvents] {string} Optionally specify the Event type to create.
+ * HTMLEvents will be used wth the exceptoins noted in eventName.
  * @returns {*}
  */
-function triggerEvent(element,eventName, evt) {
-
+function triggerEvent(element, eventName, evt) {
     // dispatch for firefox + others
     if (document.createEvent) {
         if (!evt && eventName.indexOf('mouse')+1) {
@@ -228,15 +360,20 @@ function get_firstChild(n) {
     }
     return x || null;
 }
+
+
 /**
  * Pollyfills
  * @namespace POLLYFILLS
  */
- 
+
+
 /**
  * Pollyfills for Date
  * @namespace POLLYFILLS.Date
  */
+
+
 /**
  * Date.now <- Date().getTime
  * @function POLLYFILLS.Date.now
@@ -244,10 +381,14 @@ function get_firstChild(n) {
 Date.now = Date.now || function now() {
 return new Date().getTime();
 };
+
+
 /**
  * Pollyfills for window
  * @namespace POLLYFILLS.window
  */
+
+
 /**
  * Pollyfill attachEvent (IE < 8)
  * @author https://gist.github.com/jonathantneal/3748027
@@ -291,4 +432,53 @@ return new Date().getTime();
         return this.fireEvent("on" + eventObject.type, eventObject);
     };
 })(Window.prototype, HTMLDocument.prototype, Element.prototype, "addEventListener", "removeEventListener", "dispatchEvent", []);
+
+
+/**
+ * Pollyfills for String
+ * @namespace POLLYFILLS.String
+ */
+
+/**
+ * Removes leading and trailing white space.
+ * >Pollyfill
+ * @namespace POLLYFILLS.String.trim
+ */
+String.prototype.trim = String.prototype.trim || function () {
+    return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+}
+/**
+ * Provides string formatting functionality.  Use `%s` for positinal arguments
+ * or `{0}` for indexed arguments. Boom!
+ * @namespace POLLYFILLS.String.trim
+ */
+String.prototype.format = function (){
+    var val,
+        i = 0,
+        args = Array.prototype.slice.call(arguments, 0)
+    return this.replace(/%s|{(\d+)}/g, function(match, number) {
+        number = number || i
+        if( match === '%s') i++
+        val = args[number]
+        if (val === undefined)
+            throw(new RangeError('String.format: Not enough arguments were provided.'))
+        return  val
+    })
+}
+
+
+/**
+ * Pollyfills for Array
+ * @namespace POLLYFILLS.String
+ */
+
+/**
+ * Returns true if an object is an array, false if it is not.
+ * >Pollyfill
+ * @namespace POLLYFILLS.String.trim
+ */
+Array.isArray = Array.isArray || function(arg) {
+    return Object.prototype.toString.call(arg) === '[object Array]';
+
+}
 
