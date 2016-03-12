@@ -361,6 +361,149 @@ function get_firstChild(n) {
     return x || null;
 }
 
+/**
+ * Ajax object
+ * @type {{}}
+ */
+var ajax = {};
+
+/**
+ * Ajax cross browser xhr object
+ * @returns {*}
+ */
+ajax.x = function () {
+    if (typeof XMLHttpRequest !== 'undefined') {
+        return new XMLHttpRequest();
+    }
+    var versions = [
+        "MSXML2.XmlHttp.6.0",
+        "MSXML2.XmlHttp.5.0",
+        "MSXML2.XmlHttp.4.0",
+        "MSXML2.XmlHttp.3.0",
+        "MSXML2.XmlHttp.2.0",
+        "Microsoft.XmlHttp"
+    ];
+
+    var xhr;
+    for (var i = 0; i < versions.length; i++) {
+        try {
+            xhr = new ActiveXObject(versions[i]);
+            break;
+        } catch (e) {
+        }
+    }
+    return xhr;
+};
+
+/**
+ * Ajax options parser
+ * @param callback
+ * @param options
+ * @returns {*}
+ */
+ajax.parseOptions = function (callback, options) {
+    if (callback && typeof callback !== 'function') {
+        options = callback || {}
+        callback = function () {
+        }
+    } else {
+        options = options || {}
+        callback = callback || function () {
+                }
+    }
+    options.complete = options.complete || callback
+    return options
+}
+
+/**
+ * Ajax send method
+ * @param method
+ * @param url
+ * @param options
+ */
+ajax.send = function (method, url, options) {
+    var o = options || {}
+    var func = function () {
+    }
+    o.success = o.success || o.callback || func
+    o.error = o.error || o.callback || func
+    o.complete = o.complete || func
+    o.async = o.async !== false
+    o.headers = o.headers || {}
+    o.dataType = o.dataType || ''
+    var data = options.data || options.params || {}
+
+    var query = [];
+    for (var key in data) {
+        query.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
+    }
+
+    var xhr = ajax.x();
+    if (method == 'GET') {
+        url = url + (query.length ? '?' + query.join('&') : '')
+        query = undefined
+    }
+    else
+        query = query.join('&')
+
+    //xhr.responseType = o.dataType
+    xhr.open(method, url, o.async);
+    xhr.onreadystatechange = function () {
+        // Response received
+        if (xhr.readyState == 4) {
+            var response = xhr.responseText
+            // Success
+            if (xhr.status == 200) {
+                var contentType = xhr.getResponseHeader('Content-Type')
+                if (contentType == 'application/json')
+                    xhr.responseJSON = JSON.parse(xhr.responseText)
+                response = xhr.data || xhr.responseJSON || response
+                o.success(response, xhr.status, xhr)
+            }
+            // Not Success
+            else {
+                o.error(response, xhr.status, xhr)
+            }
+            // Complete
+            console.log('ajax complete', o.complete)
+            o.complete(response, xhr.status, xhr)
+        }
+    };
+
+    if (method == 'POST') {
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    }
+
+    for (var k in o.headers)
+        xhr.setRequestHeader(k, o.headers[k]);
+
+    xhr.send(query)
+};
+
+/**
+ * Ajax GET method
+ * @param url
+ * @param callback
+ * @param options
+ */
+ajax.get = function (url, callback, options) {
+    options = ajax.parseOptions(callback, options)
+    ajax.send('GET', url, options)
+};
+
+/**
+ * Ajax POST method
+ * @param url
+ * @param data
+ * @param callabck
+ * @param options
+ */
+ajax.post = function (url, data, callabck, options) {
+    options = ajax.parseOptions(callback, options)
+    options.data = data
+    ajax.send('POST', url, options)
+};
+
 
 /**
  * Pollyfills
