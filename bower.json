@@ -1,6 +1,6 @@
 {
   "name": "vinillaHelper",
-  "main": "vanillaHelper”,
+  "main": "vanillaHelper",
   "homepage": "https://github.com/arctelix/vanillaHelper",
   "authors": [
     "arctelix <arctelix@gmail.com>"
@@ -19,8 +19,8 @@
     "test",
     "tests",
     "bower.json",
-    “docs”,
-    “LICENSE”,
-    “README.md”
+    "docs",
+    "LICENSE",
+    "README.md"
   ]
 }
