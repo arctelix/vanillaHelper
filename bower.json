@@ -1,0 +1,26 @@
+{
+  "name": "vinillaHelper",
+  "main": "vanilla
+  "homepage": "https://github.com/arctelix/vanillaHelper",
+  "authors": [
+    "arctelix <arctelix@gmail.com>"
+  ],
+  "description": "Makes vinilla even sweeter",
+  "moduleType": [],
+  "keywords": [
+    "vinilla",
+    "javascript"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "bower.json",
+    “docs”,
+    “LICENSE”,
+    “README.md”
+  ]
+}
