@@ -1,19 +1,23 @@
 {
   "name": "vanillaHelper",
-  "main": "vanillaHelper.js",
+  "main": "./dist/vanillaHelper.js",
   "homepage": "https://github.com/arctelix/vanillaHelper",
   "authors": [
     "arctelix <arctelix@gmail.com>"
   ],
-  "description": "Makes vinilla even sweeter",
+  "description": "Makes vanilla even sweeter",
   "moduleType": [],
   "keywords": [
-    "vinilla",
+    "vanilla",
     "javascript"
   ],
   "license": "MIT",
   "ignore": [
-    "*",
-    "!dist/*"
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "docs"
   ]
 }

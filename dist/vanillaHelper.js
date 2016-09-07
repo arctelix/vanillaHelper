@@ -90,15 +90,40 @@ function getParent(ele, selector){
     return ele
 }
 /**
- * Tests an if an HTMLElement is in an event path.
+ * Tests an if an HTMLElement is in the event target path.
+ * @param event {Event}
+ * @param selector {string | HTMLElement}
+ * @param delegate {HTMLElement} The element the event is attached to.
+ * The top level element in parent iteration.
+ * @returns {*}
+ */
+function isTarget (event, selector, delegate){
+
+    delegate = delegate || event.delegate
+
+    if (event.path) {
+        for (var i in event.path)
+            if (testEleMatch(event.path[i], selector)) return event.path[i]
+
+    } else {
+        var target = event.target
+        while (target) {
+            if (target == delegate) break
+            else if (testEleMatch(target, selector)) return target
+            else target = target.parentElement
+        }
+    }
+    return false
+}
+/**
+ * (depreciated) Tests an if an HTMLElement is in an event path.
  * @param event {Event}
  * @param selector {string}
  * @returns {*}
  */
-function isClicked(event, selector){
-    for (var i in event.path)
-        if (testEleMatch(event.path[i], selector)) return event.path[i]
-    return false
+function isClicked(event, selector, delegate){
+    console.warn ('isClicked has been depreciated in favor of isTarget and will be removed in future releases')
+    return isTarget (event, selector, delegate)
 }
 /**
  * Tests if an HTMLElement matches a selector.
@@ -576,6 +601,37 @@ return new Date().getTime();
     };
 })(Window.prototype, HTMLDocument.prototype, Element.prototype, "addEventListener", "removeEventListener", "dispatchEvent", []);
 
+/**
+ * Allows for simple event delegation.  Omitting the delegate target will fire listener
+ * for all delegate children.  In either case the event.delegate property is added to the
+ * specified event.
+ * @param type {string} Event type to listen for.
+ * @param target {string} [optional] The element to target for the specified event type.
+ * @param listener {function} The function to fire when the target event occurs.
+ * @function window.delegateEventListener
+ */
+(function (WindowPrototype, DocumentPrototype, ElementPrototype, registry) {
+    var protoFunc = "delegateEventListener"
+    WindowPrototype[protoFunc] = DocumentPrototype[protoFunc] = ElementPrototype[protoFunc] = function (type, target, listener) {
+        var delegate = this;
+
+        // Accept listener in lew of target
+        if (typeof target == 'function'){
+            listener = target
+            target = null
+        }
+
+        // Add the event.delegate property and check for target
+        registry.unshift([delegate, type, listener, function (event) {
+            event.delegate = delegate;
+            if (! target || isTarget(event, target, event.delegate))
+                listener.call(delegate, event);
+        }]);
+
+        this.addEventListener(type, registry[0][3])
+    };
+
+})(Window.prototype, HTMLDocument.prototype, Element.prototype, []);
 
 /**
  * Pollyfills for String
