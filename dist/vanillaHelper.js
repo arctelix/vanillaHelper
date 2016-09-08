@@ -4,7 +4,7 @@
 
 /**
  * @description Provides some basic helper methods and pollyfills for vanilla js.
- *
+ * @version 0.1.5
  * @author Simplex Studio, LTD
  * @copyright Copyright (c) 2016 Simplex Studio, LTD
  * @license The MIT License (MIT)
