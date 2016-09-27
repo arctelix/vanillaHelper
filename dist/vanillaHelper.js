@@ -657,10 +657,11 @@ String.prototype.format = function (){
         args = Array.prototype.slice.call(arguments, 0)
     return this.replace(/%s|{(\d+)}/g, function(match, number) {
         number = number || i
+        //console.log(args.length + " " + i)
+        if(args.length - 1 < i)
+            throw(new RangeError('String.format: Not enough arguments were provided.'))
         if( match === '%s') i++
         val = args[number]
-        if (val === undefined)
-            throw(new RangeError('String.format: Not enough arguments were provided.'))
         return  val
     })
 }
